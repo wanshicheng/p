@@ -17,7 +17,6 @@
     "wrangler": "^4.94.0"
   },
   "dependencies": {
-    "linkedom": "^0.18.12",
-    "ofetch": "^1.5.1"
+  "linkedom": "^0.18.12"
   }
 }

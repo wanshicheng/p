@@ -57,58 +57,21 @@ describe("Hello World worker", () => {
 		expect(await response.text()).toMatchInlineSnapshot(`"Hello World!"`);
 	});
 
-	it("lists yfinance endpoints", async () => {
-		const request = new IncomingRequest("http://example.com/yfinance");
+	it("rejects empty symbols for fund overview batch requests", async () => {
+		const request = new IncomingRequest("http://example.com", {
+			method: "POST",
+			headers: { "content-type": "application/json" },
+			body: JSON.stringify({
+				p: "fund_overview_em",
+				symbols: [],
+			}),
+		});
 		const ctx = createExecutionContext();
 		const response = await worker.fetch(request, env, ctx);
 		await waitOnExecutionContext(ctx);
 
-		expect(response.status).toBe(200);
-		expect(await response.json()).toEqual({
-			provider: "yfinance",
-			endpoints: ["/yfinance/quote"],
-		});
-	});
-
-	it("returns london gold data from yfinance route", async () => {
-		vi.spyOn(globalThis, "fetch").mockResolvedValue(
-			new Response(
-				JSON.stringify({
-					chart: {
-						result: [
-							{
-								meta: {
-									symbol: "GC=F",
-									currency: "USD",
-									regularMarketPrice: 3344.2,
-									regularMarketTime: 1716556800,
-								},
-								indicators: {
-									quote: [{ close: [3343.9, 3344.2] }],
-								},
-							},
-						],
-					},
-				}),
-				{ status: 200, headers: { "content-type": "application/json" } },
-			),
-		);
-
-		const request = new IncomingRequest("http://example.com/yfinance/quote");
-		const ctx = createExecutionContext();
-		const response = await worker.fetch(request, env, ctx);
-		await waitOnExecutionContext(ctx);
-
-		expect(response.status).toBe(200);
-		expect(await response.json()).toEqual({
-			provider: "yfinance",
-			asset: "london-gold",
-			symbol: "GC=F",
-			price: 3344.2,
-			currency: "USD",
-			marketTime: 1716556800,
-			source: "ofetch:yahoo-finance-chart",
-		});
+		expect(response.status).toBe(400);
+		expect(await response.json()).toEqual({ error: "Invalid p or symbols" });
 	});
 
 });

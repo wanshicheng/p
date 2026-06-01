@@ -1,4 +1,6 @@
 
+import { DOMParser } from "linkedom";
+
 /**
  * Fetches the fund overview from Eastmoney (天天基金-基金档案-基本概况)
  * @param symbol 基金代码 (default: "015641")
@@ -7,21 +9,21 @@
 export async function fundOverviewEM(symbol: string = "015641"): Promise<Record<string, string>[]> {
     const url = `https://fundf10.eastmoney.com/jbgk_${symbol}.html`;
     const res = await fetch(url);
+    if (!res.ok) {
+        throw new Error(`Upstream request failed: ${res.status}`);
+    }
     const html = await res.text();
 
-    // Use linkedom for HTML parsing (compatible with Workers and Node.js)
-    // @ts-ignore
-    const { DOMParser } = await import("linkedom");
     const doc = new DOMParser().parseFromString(html, "text/html");
     if (!doc) return [];
-    const tables = doc.querySelectorAll("table");
+    const tables = doc.querySelectorAll("table") as Array<Element>;
     if (!tables.length) return [];
     const lastTable = tables[tables.length - 1];
-    const rows = lastTable.querySelectorAll("tr");
+    const rows = lastTable.querySelectorAll("tr") as Array<Element>;
     const result: Record<string, string> = {};
-    rows.forEach((row, idx) => {
+    rows.forEach((row: Element) => {
         // 选取所有 th 和 td
-        const cells = Array.from(row.querySelectorAll("th,td"));
+        const cells = Array.from(row.querySelectorAll("th,td")) as Array<Element>;
         for (let i = 0; i + 1 < cells.length; i += 2) {
             const key = cells[i].textContent?.trim() || "";
             const value = cells[i + 1].textContent?.trim() || "";
