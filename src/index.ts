@@ -3,11 +3,7 @@ import { fundOverviewEM } from "./akshare/fund_overview_em";
 
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
-		// 从请求 URL 中解析路径，用于路由分发
-		const url = new URL(request.url);
-		const { pathname } = url;
-
-		// 新增基金概况接口（POST，批量）
+		// 新增基金概况接口（POST，单个）
 		if (request.method === "POST") {
 			let body: any = {};
 			try {
@@ -17,44 +13,21 @@ export default {
 			}
 			if (
 				body.p !== "fund_overview_em" ||
-				!Array.isArray(body.symbols) ||
-				body.symbols.length === 0
+				typeof body.symbol !== "string" ||
+				body.symbol.trim() === ""
 			) {
-				return Response.json({ error: "Invalid p or symbols" }, { status: 400 });
+				return Response.json({ error: "Invalid p or symbol" }, { status: 400 });
 			}
-			const symbols: string[] = body.symbols;
-			const results: any[] = [];
-			const cache = new Map<string, any>();
-			for (const symbol of symbols) {
-				if (cache.has(symbol)) {
-					const cached = cache.get(symbol);
-					if (Array.isArray(cached)) {
-						results.push(...cached);
-					} else {
-						results.push(cached);
-					}
-					continue;
-				}
-				try {
-					const overview = await fundOverviewEM(symbol);
-					const normalized = Array.isArray(overview) ? overview : [overview];
-					cache.set(symbol, normalized);
-					if (Array.isArray(overview)) {
-						results.push(...overview);
-					} else {
-						results.push(overview);
-					}
-				} catch (e) {
-					const errorResult = { error: String(e), symbol };
-					cache.set(symbol, errorResult);
-					results.push(errorResult);
-				}
+			const symbol: string = body.symbol;
+			try {
+				const overview = await fundOverviewEM(symbol);
+				const result = Array.isArray(overview) ? overview[0] : overview;
+				return new Response(JSON.stringify(result), {
+					headers: { "content-type": "application/json; charset=utf-8" },
+				});
+			} catch (e) {
+				return Response.json({ error: String(e), symbol }, { status: 500 });
 			}
-			// 直接返回数组 JSON
-			return new Response(
-				JSON.stringify(results),
-				{ headers: { 'content-type': 'application/json; charset=utf-8' } }
-			);
 		}
 
 		return new Response("p");

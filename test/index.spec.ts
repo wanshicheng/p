@@ -57,13 +57,13 @@ describe("Hello World worker", () => {
 		expect(await response.text()).toMatchInlineSnapshot(`"Hello World!"`);
 	});
 
-	it("rejects empty symbols for fund overview batch requests", async () => {
+	it("rejects empty symbol for fund overview request", async () => {
 		const request = new IncomingRequest("http://example.com", {
 			method: "POST",
 			headers: { "content-type": "application/json" },
 			body: JSON.stringify({
 				p: "fund_overview_em",
-				symbols: [],
+				symbol: "",
 			}),
 		});
 		const ctx = createExecutionContext();
@@ -71,7 +71,7 @@ describe("Hello World worker", () => {
 		await waitOnExecutionContext(ctx);
 
 		expect(response.status).toBe(400);
-		expect(await response.json()).toEqual({ error: "Invalid p or symbols" });
+		expect(await response.json()).toEqual({ error: "Invalid p or symbol" });
 	});
 
 });
