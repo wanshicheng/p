@@ -1,35 +1,49 @@
-export { fundOverviewEM } from "./akshare/fund_overview_em";
-import { fundOverviewEM } from "./akshare/fund_overview_em";
-
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
-		// 新增基金概况接口（POST，单个）
-		if (request.method === "POST") {
-			let body: any = {};
-			try {
-				body = await request.json();
-			} catch (e) {
-				return Response.json({ error: "Invalid JSON body" }, { status: 400 });
-			}
-			if (
-				body.p !== "fund_overview_em" ||
-				typeof body.symbol !== "string" ||
-				body.symbol.trim() === ""
-			) {
-				return Response.json({ error: "Invalid p or symbol" }, { status: 400 });
-			}
-			const symbol: string = body.symbol;
-			try {
-				const overview = await fundOverviewEM(symbol);
-				const result = Array.isArray(overview) ? overview[0] : overview;
-				return new Response(JSON.stringify(result), {
-					headers: { "content-type": "application/json; charset=utf-8" },
-				});
-			} catch (e) {
-				return Response.json({ error: String(e), symbol }, { status: 500 });
+		if (request.method !== "POST") {
+			return new Response("Method Not Allowed", {
+				status: 405,
+				headers: { Allow: "POST" },
+			});
+		}
+
+		let body: Record<string, unknown>;
+		try {
+			body = await request.json();
+		} catch {
+			return Response.json({ error: "Invalid JSON body" }, { status: 400 });
+		}
+
+		if (typeof body.url !== "string" || body.url.trim() === "") {
+			return Response.json({ error: "Invalid url" }, { status: 400 });
+		}
+
+		if (typeof body.X !== "string") {
+			return Response.json({ error: "Invalid X" }, { status: 400 });
+		}
+
+		const method = body.X.trim().toUpperCase();
+		if (method !== "GET" && method !== "POST") {
+			return Response.json(
+				{ error: "Unsupported method, only GET and POST are allowed" },
+				{ status: 400 }
+			);
+		}
+
+		const init: RequestInit = { method };
+		if (method === "POST") {
+
+			if (body.d && typeof body.d === "object" && Object.keys(body.d).length > 0) {
+				init.headers = { "content-type": "application/json; charset=utf-8" };
+				init.body = JSON.stringify(body.d);   
 			}
 		}
 
-		return new Response("p");
+		const upstreamResponse = await globalThis.fetch(body.url.trim(), init);
+		return new Response(upstreamResponse.body, {
+			status: upstreamResponse.status,
+			statusText: upstreamResponse.statusText,
+			headers: upstreamResponse.headers,
+		});
 	},
 } satisfies ExportedHandler<Env>;

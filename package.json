@@ -17,6 +17,5 @@
     "wrangler": "^4.94.0"
   },
   "dependencies": {
-  "linkedom": "^0.18.12"
   }
 }
